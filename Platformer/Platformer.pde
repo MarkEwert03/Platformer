@@ -22,11 +22,25 @@ color grey            = #808080;
 color white           = #ffffff;
 
 //Game
-final int PS = 36; //pixel size
+final int PS = 80; //pixel size
 
 //Players
 FBox player1, player2;
 float vx1, vy1, vx2, vy2;
+
+//FBomb
+FBomb bomb = null;
+
+//Character Animation
+PImage[] allSprites;
+PImage[] runRight;
+PImage[] runLeft;
+PImage[] idle;
+PImage[] jump;
+PImage[] currentAction;
+int frame;
+
+ArrayList<FBox> boxList = new ArrayList<FBox>();
 
 //Map
 PImage map;
@@ -39,33 +53,45 @@ boolean spaceKey;
 void setup() {
   //Basic
   fullScreen();
+  textAlign(CENTER);
+  textSize(28);
 
   //Initialize world
   Fisica.init(this);
-  world = new FWorld();
-  world.setGravity(0, 900);
-
-  //Adds objects
-  player1();
-  player2();
+  world = new FWorld(0, 0, 10000, 10000);
+  world.setGravity(0, 1250);
 
   //map
   map = loadImage("Map.png");
   rectMode(CENTER);
+
+  //Adds objects
+  player1();
+  player2();
+  
+  //Animation Arrays
+  allSprites = new PImage[100];
+  runRight   = new PImage[3];
+  runLeft    = new PImage[3];
+  idle       = new PImage[1];
+  jump       = new PImage[1];
 
   //loads world
   while (y < map.height) {
     color c = map.get(x, y);
     if (c == black) {
       FBox b = new FBox(PS, PS);
+      b.setName("ground");
       b.setFillColor(black);
       b.setPosition(x*PS+PS/2, y*PS+PS/2);
       b.setStatic(true);
+      b.setGrabbable(false);
+      b.setRestitution(0);
+      b.setFriction(0);
+      boxList.add(b);
       world.add(b);
     }
-
     x++;
-
     if (x == map.width) {
       x = 0;
       y++;
@@ -74,28 +100,50 @@ void setup() {
 }//-------------------------------------------------------------------------------------------------------------------------
 
 void draw() {
+  //int tileX, tileY;
+  //fill(white); 
+  //text("(" + x + "," + y + ")", x*PS, y*PS);
+
   background(#799fec);
 
+  pushMatrix();
+  translate(-player1.getX() + width/2, -player1.getY() + height/2);
   world.step();
   world.draw();
+  popMatrix();
 
   //player1 left-right movement
   vx1 = 0;
-  if (aKey)  vx1 = -250;
-  if (dKey)  vx1 = 250;
+  if (aKey)  vx1 = -500;
+  if (dKey)  vx1 = 500;
   player1.setVelocity(vx1, player1.getVelocityY());
   //player1 up-down movement
   ArrayList<FContact> contactList1 = player1.getContacts();
-  if (wKey && contactList1.size() > 0) player1.setVelocity(player1.getVelocityX(), -250);
-  
+  for (FContact tempContact : contactList1) {
+    if (wKey && player1.getVelocityY() == 0) {
+      if (tempContact.contains("ground") || tempContact.contains(player2)) {
+        player1.setVelocity(player1.getVelocityX(), -775);
+      }
+    }
+  }
+  //Drops down
+  if (spaceKey && bomb == null){
+    bomb = new FBomb();
+   
+  }
+  if (bomb != null) bomb.act();
+
+
   //player2 left-right movement
   vx2 = 0;
-  if (leftKey) vx2 = -250;
-  if (rightKey) vx2 = 250;
+  if (leftKey) vx2 = -500;
+  if (rightKey) vx2 = 500;
   player2.setVelocity(vx2, player2.getVelocityY());
   //player2 up-down movement
   ArrayList<FContact> contactList2 = player2.getContacts();
-  if (upKey && contactList2.size() > 0) player2.setVelocity(player2.getVelocityX(), -250);
+  for (FContact tempContact : contactList2) {
+    if (upKey && tempContact.contains("ground") && player2.getVelocityY() == 0) player2.setVelocity(player2.getVelocityX(), -775);
+  }
 }//-------------------------------------------------------------------------------------------------------------------------
 
 void keyPressed() {
