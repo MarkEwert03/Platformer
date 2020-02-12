@@ -32,13 +32,13 @@ float vx1, vy1, vx2, vy2;
 FBomb bomb = null;
 
 //Character Animation
-PImage[] allSprites;
-PImage[] runRight;
-PImage[] runLeft;
-PImage[] idle;
-PImage[] jump;
-PImage[] currentAction;
-int frame;
+PImage[] runLeft  = new PImage[2];
+PImage[] runRight = new PImage[2];
+PImage[] idle     = new PImage[2];
+PImage[] jump     = new PImage[2];
+PImage[] currentAction  = new PImage[2];
+PImage[] previousAction = new PImage[2];
+int frame, costumeNumber;
 
 ArrayList<FBox> boxList = new ArrayList<FBox>();
 
@@ -68,13 +68,17 @@ void setup() {
   //Adds objects
   player1();
   player2();
-  
+
   //Animation Arrays
-  allSprites = new PImage[100];
-  runRight   = new PImage[3];
-  runLeft    = new PImage[3];
-  idle       = new PImage[1];
-  jump       = new PImage[1];
+  runLeft[0]   = loadImage("Sprites/Run Left 0.png");
+  runLeft[1]   = loadImage("Sprites/Run Left 1.png");
+  runRight[0]  = loadImage("Sprites/Run Right 0.png");
+  runRight[1]  = loadImage("Sprites/Run Right 1.png");
+  idle[0]      = loadImage("Sprites/Idle Left.png");
+  idle[1]      = loadImage("Sprites/Idle Right.png");
+  jump[0]      = loadImage("Sprites/Jump Left.png");
+  jump[1]      = loadImage("Sprites/Jump Right.png");
+  currentAction = idle;
 
   //loads world
   while (y < map.height) {
@@ -104,7 +108,7 @@ void draw() {
   //fill(white); 
   //text("(" + x + "," + y + ")", x*PS, y*PS);
 
-  background(#799fec);
+  background(white);
 
   pushMatrix();
   translate(-player1.getX() + width/2, -player1.getY() + height/2);
@@ -114,31 +118,76 @@ void draw() {
 
   //player1 left-right movement
   vx1 = 0;
-  if (aKey)  vx1 = -500;
-  if (dKey)  vx1 = 500;
+  if (aKey) {
+    vx1 = -500;
+    if (player1.getVelocityY() == 0) {
+      currentAction = runLeft;
+      previousAction = runLeft;
+    }
+  }
+  if (dKey) {
+    vx1 = 500;
+    if (player1.getVelocityY() == 0) {
+      currentAction = runRight;
+      previousAction = runRight;
+    }
+  }
   player1.setVelocity(vx1, player1.getVelocityY());
+
   //player1 up-down movement
   ArrayList<FContact> contactList1 = player1.getContacts();
   for (FContact tempContact : contactList1) {
     if (wKey && player1.getVelocityY() == 0) {
       if (tempContact.contains("ground") || tempContact.contains(player2)) {
         player1.setVelocity(player1.getVelocityX(), -775);
+        currentAction = jump;
+        if (player1.getVelocityX() < 0) costumeNumber = 0;
+        else if (player1.getVelocityY() > 0) costumeNumber = 1;
       }
     }
   }
-  //Drops down
-  if (spaceKey && bomb == null){
-    bomb = new FBomb();
-   
+
+  //idle
+  if (player1.getVelocityX() == 0 && player1.getVelocityY() == 0) {
+    currentAction = idle;
   }
+
+  //player1 drops bomb
+  if (spaceKey && bomb == null) {
+    bomb = new FBomb();
+  }
+  //bomb acts
   if (bomb != null) bomb.act();
 
+  //Loops through animation
+  player1.attachImage(currentAction[costumeNumber]);
+  if (currentAction == runLeft || currentAction == runRight) {
+    if (frameCount % 10 == 0) {
+      costumeNumber++;
+      if (costumeNumber >= currentAction.length) {
+        costumeNumber = 0;
+      }
+    }
+  } else if (previousAction == runLeft){
+    costumeNumber = 0;
+  } else if (previousAction == runRight){
+   costumeNumber = 1; 
+  }
 
   //player2 left-right movement
   vx2 = 0;
-  if (leftKey) vx2 = -500;
-  if (rightKey) vx2 = 500;
+  if (leftKey) {
+    vx2 = -500;
+    currentAction = runLeft;
+    costumeNumber = 0;
+  }
+  if (rightKey) {
+    vx2 = 500;
+    currentAction = runLeft;
+    costumeNumber = 0;
+  }
   player2.setVelocity(vx2, player2.getVelocityY());
+
   //player2 up-down movement
   ArrayList<FContact> contactList2 = player2.getContacts();
   for (FContact tempContact : contactList2) {
